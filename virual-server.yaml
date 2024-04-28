@@ -12,8 +12,8 @@ spec:
     redirect:
       enable: false
   upstreams:
-    - name: keycloak-core
-      service: keycloak-core
+    - name: keycloak
+      service: keycloak
       port: 8080
       type: http
       tls:
