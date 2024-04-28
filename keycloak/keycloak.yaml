@@ -1,156 +1,17 @@
-##################################################################################################
-# CREATE NAMESPACE - keycloak
-##################################################################################################
----
-kind: Namespace
-apiVersion: v1
-metadata:
-  name: keycloak
-
-##################################################################################################
-# CREATE SECRETS - keycloak
-##################################################################################################
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: postgres-creds
-  namespace: keycloak
-type: Opaque
-stringData:
-  POSTGRES_USER: postgres
-  POSTGRES_PASSWORD: aabbcc++112233
-  POSTGRES_DB: keycloak
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: '*.1broken.net'
-  namespace: default
-spec:
-  # Secret names are always required.
-  secretName: tls-keycloak-secret
-  dnsNames:
-    - '*.1broken.net'
-  issuerRef:
-    name: mcluster.1broken.net
-    # We can reference ClusterIssuers by changing the kind here.
-    # The default value is Issuer (i.e. a locally namespaced Issuer)
-    kind: ClusterIssuer
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: keycloak-secrets
-  namespace: keycloak
-type: Opaque
-stringData:
-  KEYCLOAK_ADMIN: admin
-  KEYCLOAK_ADMIN_PASSWORD: admin
-##################################################################################################
-# CREATE PERSISTANTVOLUME - postgres
-##################################################################################################
----
-kind: PersistentVolume
-apiVersion: v1
-metadata:
-  name: postgres-pv
-  namespace: keycloak
-  labels:
-    type: local
-    app: postgres
-spec:
-  storageClassName: 'standard'
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteMany
-  persistentVolumeReclaimPolicy: Delete
-  hostPath:
-    path: '/mnt/data'
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: postgres-pvc
-  namespace: keycloak
-  labels:
-    app: postgres
-spec:
-  storageClassName: 'standard'
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 1Gi
-##################################################################################################
-# CREATE POSTGRES DEPLOYMENT - postgres
-##################################################################################################
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: postgres
-  namespace: keycloak
-spec:
-  selector:
-    matchLabels:
-      app: postgres
-  strategy:
-    type: Recreate
-  template:
-    metadata:
-      labels:
-        app: postgres
-    spec:
-      containers:
-        - image: postgres:15.4
-          name: postgres
-          envFrom:
-            - secretRef:
-                name: postgres-creds
-          ports:
-            - containerPort: 5432
-              name: postgres
-          securityContext:
-            privileged: false
-          volumeMounts:
-            - name: postgres-storage
-              mountPath: /var/lib/postgresql/data
-          resources:
-            limits:
-              memory: 512Mi
-              cpu: '1'
-            requests:
-              memory: 256Mi
-              cpu: '0.2'
-      volumes:
-        - name: postgres-storage
-          persistentVolumeClaim:
-            claimName: postgres-pvc
-
-##################################################################################################
-# CREATE SERVICE - postgres
-##################################################################################################
----
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
-  namespace: keycloak
+  name: keycloak
   labels:
-    app: postgres
+    app: keycloak
 spec:
   ports:
-    - port: 5432
-      name: postgres
+    - name: http
+      port: 8080
+      targetPort: 8080
   selector:
-    app: postgres
-  type: ClusterIP
-
-##################################################################################################
-# CREATE KEYCLOAK DEPLOYMENT - keycloak
-##################################################################################################
+    app: keycloak
+  type: LoadBalancer
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -158,7 +19,6 @@ metadata:
   name: keycloak
   labels:
     app: keycloak
-  namespace: keycloak
 spec:
   replicas: 1
   selector:
@@ -171,90 +31,19 @@ spec:
     spec:
       containers:
         - name: keycloak
-          image: quay.io/keycloak/keycloak:22.0.3
+          image: quay.io/keycloak/keycloak:24.0.3
           args: ['start-dev']
-          #args: ["start-dev", "--log-level=ERROR", "--log=file"]
-          #default container log file path - /opt/keycloak/data/log/keycloak.log
           env:
             - name: KEYCLOAK_ADMIN
-              valueFrom:
-                secretKeyRef:
-                  key: KEYCLOAK_ADMIN
-                  name: keycloak-secrets
+              value: 'admin'
             - name: KEYCLOAK_ADMIN_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  key: KEYCLOAK_ADMIN_PASSWORD
-                  name: keycloak-secrets
+              value: 'admin'
             - name: KC_PROXY
               value: 'edge'
-            - name: KC_HEALTH_ENABLED
-              value: 'true'
-            - name: KC_METRICS_ENABLED
-              value: 'true'
-            - name: KC_HOSTNAME_STRICT_HTTPS
-              value: 'true'
-            - name: KC_LOG_LEVEL
-              value: INFO
-            - name: PROXY_ADDRESS_FORWARDING
-              value: 'true'
-            - name: KC_DB
-              value: postgres
-            - name: POSTGRES_DB
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-creds
-                  key: POSTGRES_DB
-            - name: KC_DB_URL
-              value: jdbc:postgresql://postgres/$(POSTGRES_DB)
-            - name: KC_DB_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-creds
-                  key: POSTGRES_USER
-            - name: KC_DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-creds
-                  key: POSTGRES_PASSWORD
           ports:
             - name: http
               containerPort: 8080
           readinessProbe:
             httpGet:
-              path: /health/ready
+              path: /realms/master
               port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /health/live
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          resources:
-            limits:
-              memory: 512Mi
-              cpu: '1'
-            requests:
-              memory: 256Mi
-              cpu: '0.2'
-##################################################################################################
-# CREATE Service - keycloak
-##################################################################################################
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: keycloak
-  namespace: keycloak
-  labels:
-    app: keycloak
-spec:
-  type: ClusterIP
-  ports:
-    - name: http
-      port: 8080
-      targetPort: 8080
-  selector:
-    app: keycloak
