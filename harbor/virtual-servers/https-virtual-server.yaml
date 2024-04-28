@@ -1,0 +1,25 @@
+apiVersion: k8s.nginx.org/v1
+kind: VirtualServer
+metadata:
+  name: http.harbor.1broken.net
+spec:
+  ingressClassName: nginx
+  host: harbor.1broken.net
+  tls:
+    secret: harbor-tls-secret
+    cert-manager:
+      cluster-issuer: mcluster.1broken.net
+    redirect:
+      enable: false
+  upstreams:
+  - name: harbor-core
+    service: harbor-core
+    port: 80
+    type: http
+    tls:
+      enable: false
+  routes:
+  - path: /
+    action:
+      proxy:
+        upstream: harbor-core
