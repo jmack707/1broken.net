@@ -1,0 +1,25 @@
+apiVersion: k8s.nginx.org/v1
+kind: VirtualServer
+metadata:
+  name: http.keycloak.1broken.net
+spec:
+  ingressClassName: nginx
+  host: keycloak.1broken.net
+  tls:
+    secret: keycloak-tls-secret
+    cert-manager:
+      cluster-issuer: mcluster.1broken.net
+    redirect:
+      enable: false
+  upstreams:
+    - name: keycloak-core
+      service: keycloak-core
+      port: 8080
+      type: http
+      tls:
+        enable: false
+  routes:
+    - path: /
+      action:
+        proxy:
+          upstream: keycloak
