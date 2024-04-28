@@ -2,6 +2,7 @@ apiVersion: k8s.nginx.org/v1
 kind: VirtualServer
 metadata:
   name: http.keycloak.1broken.net
+  namespace: keycloak
 spec:
   ingressClassName: nginx
   host: keycloak.1broken.net
