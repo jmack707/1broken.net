@@ -1,4 +1,3 @@
-
 apiVersion: k8s.nginx.org/v1
 kind: VirtualServer
 metadata:
@@ -14,14 +13,14 @@ spec:
     redirect:
       enable: false
   upstreams:
-  - name: awx-demo-service
-    service: awx-demo-service
-    port: 80
-    type: http
-    tls:
-      enable: false
+    - name: ansible-awx-service
+      service: ansible-awx-service
+      port: 80
+      type: http
+      tls:
+        enable: false
   routes:
-  - path: /
-    action:
-      proxy:
-        upstream: awx-demo-service
+    - path: /
+      action:
+        proxy:
+          upstream: ansible-awx-service
