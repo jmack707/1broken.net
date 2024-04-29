@@ -1,6 +1,0 @@
----
-AWX:
-  enabled: true
-  name: awx-demo
-  spec:
-    service_type: ClusterIP

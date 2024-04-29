@@ -1,0 +1,26 @@
+apiVersion: k8s.nginx.org/v1
+kind: VirtualServer
+metadata:
+  name: http.awx.1broken.net
+  namespace: awx
+spec:
+  ingressClassName: nginx
+  host: awx.1broken.net
+  tls:
+    secret: awx-tls-secret
+    cert-manager:
+      cluster-issuer: mcluster.1broken.net
+    redirect:
+      enable: false
+  upstreams:
+    - name: ansible-awx-service
+      service: ansible-awx-service
+      port: 80
+      type: http
+      tls:
+        enable: false
+  routes:
+    - path: /
+      action:
+        proxy:
+          upstream: ansible-awx-service

@@ -7,7 +7,7 @@ AWX:
 
   # configurations for external postgres instance
   postgres:
-    enabled: false
+    enabled: true
     host: Unset
     port: 5678
     dbName: Unset
