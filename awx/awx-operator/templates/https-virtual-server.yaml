@@ -2,7 +2,7 @@ apiVersion: k8s.nginx.org/v1
 kind: VirtualServer
 metadata:
   name: http.awx.1broken.net
-  namespace: awx
+  namespace: { { $.Release.Namespace } }
 spec:
   ingressClassName: nginx
   host: awx.1broken.net
@@ -13,8 +13,8 @@ spec:
     redirect:
       enable: false
   upstreams:
-    - name: ansible-awx-service
-      service: ansible-awx-service
+    - name: {{$.Release}}-awx-service
+      service: {{$.Release}}-awx-service
       port: 80
       type: http
       tls:
@@ -23,4 +23,4 @@ spec:
     - path: /
       action:
         proxy:
-          upstream: ansible-awx-service
+          upstream: {{$.Release}}-awx-service
