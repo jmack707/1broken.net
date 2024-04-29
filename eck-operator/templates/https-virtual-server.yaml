@@ -1,0 +1,26 @@
+apiVersion: k8s.nginx.org/v1
+kind: VirtualServer
+metadata:
+  name: http.eck.1broken.net
+  namespace: eck
+spec:
+  ingressClassName: nginx
+  host: eck.1broken.net
+  tls:
+    secret: eck-tls-secret
+    cert-manager:
+      cluster-issuer: mcluster.1broken.net
+    redirect:
+      enable: false
+  upstreams:
+    - name: eck-demo-service
+      service: elastic-operator-webhook
+      port: 443
+      type: http
+      tls:
+        enable: true
+  routes:
+    - path: /
+      action:
+        proxy:
+          upstream: eck-demo-service
