@@ -4,10 +4,13 @@ AWX:
   name: awx
   spec:
     admin_user: admin
+    projects_persistence: true
+    projects_storage_size: 20Gi
+    projects_storage_access_mode: ReadWriteOnce
 
   # configurations for external postgres instance
   postgres:
-    enabled: true
+    enabled: false
     host: Unset
     port: 5678
     dbName: Unset
