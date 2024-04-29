@@ -13,8 +13,8 @@ spec:
     redirect:
       enable: false
   upstreams:
-    - name: {{$.Release}}-awx-service
-      service: {{$.Release}}-awx-service
+    - name: ansible-awx-service
+      service: ansible-awx-service
       port: 80
       type: http
       tls:
@@ -23,4 +23,4 @@ spec:
     - path: /
       action:
         proxy:
-          upstream: {{$.Release}}-awx-service
+          upstream: awx-service
