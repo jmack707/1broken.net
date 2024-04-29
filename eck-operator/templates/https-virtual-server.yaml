@@ -2,7 +2,7 @@ apiVersion: k8s.nginx.org/v1
 kind: VirtualServer
 metadata:
   name: http.eck.1broken.net
-  namespace: eck
+  namespace: elastic-system
 spec:
   ingressClassName: nginx
   host: eck.1broken.net
@@ -14,8 +14,8 @@ spec:
       enable: false
   upstreams:
     - name: eck-demo-service
-      service: elastic-operator-webhook
-      port: 443
+      service: eck-stack-eck-kibana-kb-http
+      port: 5601
       type: http
       tls:
         enable: true
